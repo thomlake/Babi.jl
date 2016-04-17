@@ -17,13 +17,13 @@ The function you want is `Babi.read_data`. It takes a single positional argument
 
 Read bAbI task data for the task specified by `task_id`. 
 
-*Arguments*
+**Arguments**
 
 * `task_id::Int`: task number (from 1 to 20).
 * `path::AbstractString`: path to the directory containing the bAbI task data, i.e., `"/path/to/tasks_1-20_v1-2/"`.
 * `collection::AbstractString`: collection to load. Should be one of `"en"`, `"hn"`, `"shuffled"`, `"en-10k"`, `"hn-10k"`, or `"shuffled-10k"`.
 
-*Returns*
+**Returns**
 
 * `input_vocab::IndexedArray{ASCIIString}`: clause and question vocabulary.
 * `output_vocab::IndexedArray{ASCIIString}`: answer vocabulary.

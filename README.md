@@ -30,7 +30,7 @@ Read bAbI task data for the task specified by `task_id`.
 * `train_docs::Vector{Vector{Babi.Item}}`: training documents.
 * `clause_vocab::IndexedArray{ASCIIString}`: testing document.
 
-By default `Babi.read_data` attempts to use the `BABI_PATH` environment variable to find the location where the data resides. You can either pass in this variable or set it
+By default `Babi.read_data` attempts to use the `BABI_PATH` environment variable to find the location where the data resides. You can either pass in this variable or set it at the command line or in your `.bashrc`, `.bash_profile`, etc.
 
 ```bash
 export BABI_PATH="/path/to/tasks_1-20_v1-2/"

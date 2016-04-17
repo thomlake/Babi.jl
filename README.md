@@ -11,6 +11,24 @@ All the task are descibed in the paper [Towards AI Complete Question Answering: 
 This module provides utilities for wokring with the bAbI tasks data. Currently this is just loading the data, but in the future other functionality may be added. Before using this module you'll need to download the bAbI data. Version 1.2 is available [here](http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz). Should this link rot an up to date link should be available at the main [bAbI page](https://research.facebook.com/researchers/1543934539189348).
 
 ## Usage
-The function you want is `Babi.read_data`. It takes a single positional argument `task_id` which should be a number from 1 to 20 specifying the task to read.
+The function you want is `Babi.read_data`. It takes a single positional argument `task_id` which should be a number from 1 to 20 specifying the task to read. Here's the docstring
+
+    Babi.read_data(task_id; path=ENV["BABI_PATH"], collection="en")
+
+Read bAbI task data for the task specified by `task_id`. 
+
+*Arguments*
+
+* `task_id::Int`: task number (from 1 to 20).
+* `path::AbstractString`: path to the directory containing the bAbI task data, i.e., `"/path/to/tasks_1-20_v1-2/"`.
+* `collection::AbstractString`: collection to load. Should be one of `"en"`, `"hn"`, `"shuffled"`, `"en-10k"`, `"hn-10k"`, or `"shuffled-10k"`.
+
+*Returns*
+
+* `input_vocab::IndexedArray{ASCIIString}`: clause and question vocabulary.
+* `output_vocab::IndexedArray{ASCIIString}`: answer vocabulary.
+* `train_docs::Vector{Vector{Babi.Item}}`: training documents.
+* `clause_vocab::IndexedArray{ASCIIString}`: testing document.
+```
 
 If you don't want to pass an argument specifying the path where you saved

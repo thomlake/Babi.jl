@@ -1,10 +1,10 @@
 
-type Statement
+type Clause
     i::Int
     text::ASCIIString
     words::Vector{Int}
 end
-Base.show(io::IO, s::Statement) = print(io, "[$(s.i)] $(s.text)")
+Base.show(io::IO, s::Clause) = print(io, "[$(s.i)] $(s.text)")
 
 abstract Question
 
@@ -28,7 +28,7 @@ type QuestionMultiple <: Question
 end
 Base.show(io::IO, q::QuestionMultiple) = print(io, "[$(q.i)] $(q.text) => $(join(q.answer, ", ")) $(q.support)")
 
-typealias Item Union{Statement,Question}
+typealias Item Union{Clause,Question}
 
 const QUESTION_TYPE_LOOKUP = Dict{Int,DataType}(
      1 => QuestionSingle,
@@ -94,14 +94,14 @@ const QUESTION_TYPE_LOOKUP = Dict{Int,DataType}(
 # end
 
 
-function Statement(V::Vocab, i::Int, text::ASCIIString)
+function Clause(V::Vocab, i::Int, text::ASCIIString)
     words = Int[]
     text = filter(c -> !ispunct(c), strip(text))
     for w in map(ASCIIString, split(text, " "))
         !in(w, V) && push!(V, w)
         push!(words, findfirst(V, w))
     end
-    return Statement(i, text, words)
+    return Clause(i, text, words)
 end
 
 function QuestionSingle(V1::Vocab, V2::Vocab, i::Int, text::ASCIIString)
@@ -119,7 +119,7 @@ function QuestionSingle(V1::Vocab, V2::Vocab, i::Int, text::ASCIIString)
     return QuestionSingle(i, question_text, words, answer_text, answer, support)
 end
 
-function readtext(task_id::Int, V1::Vocab, V2::Vocab, fname::ASCIIString)
+function read_text(task_id::Int, V1::Vocab, V2::Vocab, fname::AbstractString)
     Q = QUESTION_TYPE_LOOKUP[task_id]
     stories = Vector{Item}[]
     open(fname) do fp
@@ -137,13 +137,8 @@ function readtext(task_id::Int, V1::Vocab, V2::Vocab, fname::ASCIIString)
             i = j
             if contains(s2, "\t")
                 push!(story, Q(V1, V2, i, s2))
-                # q_, a_, f_ = map(ASCIIString, split(s2, "\t"))
-                # q = filter(c -> !ispunct(c), strip(q_))
-                # a = strip(a_)
-                # f = map(k -> parse(Int, k), split(f_))
-                # push!(story, TextQuestion(i, q, a, f))
             else
-                push!(story, Statement(V1, i, s2))
+                push!(story, Clause(V1, i, s2))
             end
         end
         if length(story) > 0
@@ -153,33 +148,36 @@ function readtext(task_id::Int, V1::Vocab, V2::Vocab, fname::ASCIIString)
     return stories
 end
 
-function task_file_names(task_id::Int; root::ASCIIString=DATA_PATH)
+function task_file_names(task_id::Int; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en")
     prefix = string("qa", task_id, "_")
-    file_names = filter(f -> startswith(f, prefix), readdir(root))
+    fullpath = joinpath(path, collection)
+    file_names = filter(f -> startswith(f, prefix), readdir(fullpath))
     length(file_names) == 2 || error("Expected two files, found: ", file_names)
     ftrain, ftest = endswith(file_names[1], "train.txt") ? (file_names[1], file_names[2]) : (file_names[2], file_names[1])
-    return joinpath(root, ftrain), joinpath(root, ftest)
+    return joinpath(fullpath, ftrain), joinpath(fullpath, ftest)
 end
 
-function build_dataset(task_id::Int; root::ASCIIString=DATA_PATH)
-    ftrain, ftest = task_file_names(task_id; root=root)
+"""
+    Babi.read_data(task_id; path=ENV["BABI_PATH"], collection="en")
+
+Read bAbI task data for the task specified by `task_id`. 
+
+# Arguments
+* `task_id::Int`: task number (from 1 to 20).
+* `path::AbstractString`: path to the directory containing the bAbI task data, i.e., `"/path/to/tasks_1-20_v1-2/"`.
+* `collection::AbstractString`: collection to load. Should be one of `"en"`, `"hn"`, `"shuffled"`, `"en-10k"`, `"hn-10k"`, or `"shuffled-10k"`.
+
+# Returns
+* `input_vocab::IndexedArray{ASCIIString}`: clause and question vocabulary.
+* `output_vocab::IndexedArray{ASCIIString}`: answer vocabulary.
+* `train_docs::Vector{Vector{Babi.Item}}`: training documents.
+* `clause_vocab::IndexedArray{ASCIIString}`: testing document.
+"""
+function read_data(task_id::Int; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en")
+    ftrain, ftest = task_file_names(task_id; path=path, collection=collection)
     V1 = Vocab()
     V2 = Vocab()
-    train = readtext(task_id, V1, V2, ftrain)
-    test = readtext(task_id, V1, V2, ftest)
+    train = read_text(task_id, V1, V2, ftrain)
+    test = read_text(task_id, V1, V2, ftest)
     return V1, V2, train, test
-    # words = Set{ASCIIString}()
-    # for docs in (docs_train, docs_test)
-    #     for doc in docs
-    #         for item in doc
-    #             union!(words, split(item.text, " "))
-    #             isa(item, Question) && push!(words, item.answer)
-    #         end
-    #     end
-    # end
-    # vocab = IndexedArray(ASCIIString[word for word in words])
-
-    # bows_train = Vector{Item}[bow(vocab, doc) for doc in docs_train]
-    # bows_test = Vector{Item}[bow(vocab, doc) for doc in docs_test]
-    # return bows_train, bows_test, vocab
 end

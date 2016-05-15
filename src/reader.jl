@@ -119,6 +119,21 @@ function QuestionSingle(V1::Vocab, V2::Vocab, i::Int, text::ASCIIString)
     return QuestionSingle(i, question_text, words, answer_text, answer, support)
 end
 
+function QuestionMultiple(V1::Vocab, V2::Vocab, i::Int, text::ASCIIString)
+    question_text, answer_text, support_text = map(ASCIIString, split(text, "\t"))
+    question_text = filter(c -> !ispunct(c), strip(question_text))
+    answer_text = strip(answer_text)
+    support = map(k -> parse(Int, k), split(support_text))
+    words = Int[]
+    for w in map(ASCIIString, split(question_text, " "))
+        !in(w, V1) && push!(V1, w)
+        push!(words, findfirst(V1, w))
+    end
+    !in(answer_text, V2) && push!(V2, answer_text)
+    answer = findfirst(V2, answer_text)
+    return QuestionSingle(i, question_text, words, answer_text, answer, support)
+end
+
 function read_text(task_id::Int, V1::Vocab, V2::Vocab, fname::AbstractString)
     Q = QUESTION_TYPE_LOOKUP[task_id]
     stories = Vector{Item}[]

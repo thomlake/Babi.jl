@@ -1,141 +1,60 @@
 
 type Clause
+    task_id::Int
     i::Int
     text::ASCIIString
-    words::Vector{Int}
+    tokens::Vector{Int}
 end
 Base.show(io::IO, s::Clause) = print(io, "[$(s.i)] $(s.text)")
 
-abstract Question
-
-type QuestionSingle <: Question
+type Question
+    task_id::Int
     i::Int
     text::ASCIIString
-    words::Vector{Int}
+    tokens::Vector{Int}
     answer::ASCIIString
     target::Int
     support::Vector{Int}
 end
-Base.show(io::IO, q::QuestionSingle) = print(io, "[$(q.i)] $(q.text) => $(q.answer) $(q.support)")
-
-type QuestionMultiple <: Question
-    i::Int
-    text::ASCIIString
-    words::Vector{Int}
-    answer::Vector{ASCIIString}
-    target::Vector{Int}
-    support::Vector{Int}
-end
-Base.show(io::IO, q::QuestionMultiple) = print(io, "[$(q.i)] $(q.text) => $(join(q.answer, ", ")) $(q.support)")
+Base.show(io::IO, q::Question) = print(io, "[$(q.i)] $(q.text) => $(q.answer) $(q.support)")
 
 typealias Item Union{Clause,Question}
 
-const QUESTION_TYPE_LOOKUP = Dict{Int,DataType}(
-     1 => QuestionSingle,
-     2 => QuestionSingle,
-     3 => QuestionSingle,
-     4 => QuestionSingle,
-     5 => QuestionSingle,
-     6 => QuestionSingle,
-     7 => QuestionSingle,
-     8 => QuestionMultiple,
-     9 => QuestionSingle,
-    10 => QuestionSingle,
-    11 => QuestionSingle,
-    12 => QuestionSingle,
-    13 => QuestionSingle,
-    14 => QuestionSingle,
-    15 => QuestionSingle,
-    16 => QuestionSingle,
-    17 => QuestionSingle,
-    18 => QuestionSingle,
-    19 => QuestionMultiple,
-    20 => QuestionSingle,
-)
 
-
-# """Convert from text to bag of words."""
-# function bow end
-
-# bow(V::IndexedArray{ASCIIString}, text::ASCIIString) = Int[findfirst(V, w) for w in split(text, " ")]
-
-# const AGENTS = Vector{ASCIIString}[
-#     ["john", "mary", "sandra", "daniel"],
-# ]
-
-# const LOCATIONS = Vector{ASCIIString}[
-#     ["bathroom", "bedroom", "office", "hallway", "kitchen", "garden"],
-# ]
-
-# function find_agents(story::Vector{TextItem}, task_id::Int)
-#     agents = AGENTS[task_id]
-#     seen = Set{ASCIIString}()
-#     for item in story
-#         for agent in agents
-#             if contains(item.text, agent)
-#                 push!(seen, agent)
-#             end
-#         end
-#     end
-#     return ASCIIString[agent for agent in seen]
-# end
-
-# function find_locations(story::Vector{TextItem}, task_id::Int)
-#     agents = LOCATIONS[task_id]
-#     seen = Set{ASCIIString}()
-#     for item in story
-#         for agent in agents
-#             if contains(item.text, agent)
-#                 push!(seen, agent)
-#             end
-#         end
-#     end
-#     return ASCIIString[agent for agent in seen]
-# end
-
-
-function Clause(V::Vocab, i::Int, text::ASCIIString)
-    words = Int[]
+function Clause(V::Vocab, task_id::Int, i::Int, text::ASCIIString, gram_size::Int=1)
     text = filter(c -> !ispunct(c), strip(text))
-    for w in map(ASCIIString, split(text, " "))
+    words = map(ASCIIString, split(text, " "))
+    if gram_size > 1
+        words = [join(words[j:j + gram_size - 1], " ") for j = 1:length(words) - gram_size + 1]
+    end
+    tokens = Int[]
+    for w in words
         !in(w, V) && push!(V, w)
-        push!(words, findfirst(V, w))
+        push!(tokens, findfirst(V, w))
     end
-    return Clause(i, text, words)
+    return Clause(task_id, i, text, tokens)
 end
 
-function QuestionSingle(V1::Vocab, V2::Vocab, i::Int, text::ASCIIString)
+function Question(V1::Vocab, V2::Vocab, task_id::Int, i::Int, text::ASCIIString, gram_size::Int=1)
     question_text, answer_text, support_text = map(ASCIIString, split(text, "\t"))
     question_text = filter(c -> !ispunct(c), strip(question_text))
     answer_text = strip(answer_text)
     support = map(k -> parse(Int, k), split(support_text))
-    words = Int[]
-    for w in map(ASCIIString, split(question_text, " "))
+    words = map(ASCIIString, split(question_text, " "))
+    if gram_size > 1
+        words = [join(words[j:j + gram_size - 1], " ") for j = 1:length(words) - gram_size + 1]
+    end
+    tokens = Int[]
+    for w in words
         !in(w, V1) && push!(V1, w)
-        push!(words, findfirst(V1, w))
+        push!(tokens, findfirst(V1, w))
     end
     !in(answer_text, V2) && push!(V2, answer_text)
     answer = findfirst(V2, answer_text)
-    return QuestionSingle(i, question_text, words, answer_text, answer, support)
+    return Question(task_id, i, question_text, tokens, answer_text, answer, support)
 end
 
-function QuestionMultiple(V1::Vocab, V2::Vocab, i::Int, text::ASCIIString)
-    question_text, answer_text, support_text = map(ASCIIString, split(text, "\t"))
-    question_text = filter(c -> !ispunct(c), strip(question_text))
-    answer_text = strip(answer_text)
-    support = map(k -> parse(Int, k), split(support_text))
-    words = Int[]
-    for w in map(ASCIIString, split(question_text, " "))
-        !in(w, V1) && push!(V1, w)
-        push!(words, findfirst(V1, w))
-    end
-    !in(answer_text, V2) && push!(V2, answer_text)
-    answer = findfirst(V2, answer_text)
-    return QuestionSingle(i, question_text, words, answer_text, answer, support)
-end
-
-function read_text(task_id::Int, V1::Vocab, V2::Vocab, fname::AbstractString)
-    Q = QUESTION_TYPE_LOOKUP[task_id]
+function read_text(task_id::Int, V1::Vocab, V2::Vocab, fname::AbstractString, gram_size::Int=1)
     stories = Vector{Item}[]
     open(fname) do fp
         story = Item[]
@@ -151,9 +70,9 @@ function read_text(task_id::Int, V1::Vocab, V2::Vocab, fname::AbstractString)
             end
             i = j
             if contains(s2, "\t")
-                push!(story, Q(V1, V2, i, s2))
+                push!(story, Question(V1, V2, task_id, i, s2, gram_size))
             else
-                push!(story, Clause(V1, i, s2))
+                push!(story, Clause(V1, task_id, i, s2, gram_size))
             end
         end
         if length(story) > 0
@@ -179,9 +98,10 @@ Read bAbI task data for the task specified by `task_id`.
 
 **Arguments**
 
-* `task_id::Int`: task number (from 1 to 20).
+* `task_ids::Union{Int,Vector{Int}}`: task numbers to load (from 1 to 20).
 * `path::AbstractString`: path to the directory containing the bAbI task data, i.e., `"/path/to/tasks_1-20_v1-2/"`.
 * `collection::AbstractString`: collection to load. Should be one of `"en"`, `"hn"`, `"shuffled"`, `"en-10k"`, `"hn-10k"`, or `"shuffled-10k"`.
+* `gram_size::Int`: number of grams per token.
 
 **Returns**
 
@@ -190,11 +110,21 @@ Read bAbI task data for the task specified by `task_id`.
 * `train_docs::Vector{Vector{Babi.Item}}`: training documents.
 * `clause_vocab::IndexedArray{ASCIIString}`: testing document.
 """
-function read_data(task_id::Int; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en")
-    ftrain, ftest = task_file_names(task_id; path=path, collection=collection)
+function read_data(task_ids::Vector{Int}; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en", gram_size::Int=1)
     V1 = Vocab()
     V2 = Vocab()
-    train = read_text(task_id, V1, V2, ftrain)
-    test = read_text(task_id, V1, V2, ftest)
+    train = Vector{Item}[]
+    test = Vector{Item}[]
+    for task_id in task_ids
+        ftrain, ftest = task_file_names(task_id; path=path, collection=collection)
+        tr = read_text(task_id, V1, V2, ftrain, gram_size)
+        te = read_text(task_id, V1, V2, ftest, gram_size)
+        append!(train, tr)
+        append!(test, te)
+    end
     return V1, V2, train, test
+end
+
+function read_data(task_id::Int; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en", gram_size::Int=1)
+    return read_data([task_id]; path=path, collection=collection, gram_size=gram_size)
 end

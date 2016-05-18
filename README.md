@@ -11,17 +11,18 @@ All the task are descibed in the paper [Towards AI Complete Question Answering: 
 This module provides utilities for wokring with the bAbI tasks data. Currently this is just loading the data, but in the future other functionality may be added. Before using this module you'll need to download the bAbI data. Version 1.2 is available [here](http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz). Should this link rot an up to date link should be available at the main [bAbI page](https://research.facebook.com/researchers/1543934539189348).
 
 ## Usage
-The function you want is `Babi.read_data`. It takes a single positional argument `task_id` which should be a number from 1 to 20 specifying the task to read. Here's the docstring
+The top level function for reading data is `Babi.dataset`. It takes a single positional argument `task_ids` which should be a integer (or vector of integers) from 1 to 20 specifying the task(s) to read. Here's the docstring
 
-    Babi.read_data(task_id; path=ENV["BABI_PATH"], collection="en")
+    Babi.dataset(task_ids; path=ENV["BABI_PATH"], collection="en")
 
 Read bAbI task data for the task specified by `task_id`. 
 
 **Arguments**
 
-* `task_id::Int`: task number (from 1 to 20).
+* `task_id::Union{Int,Vector{Int}}`: task number(s) from 1 to 20.
 * `path::AbstractString`: path to the directory containing the bAbI task data, i.e., `"/path/to/tasks_1-20_v1-2/"`.
 * `collection::AbstractString`: collection to load. Should be one of `"en"`, `"hn"`, `"shuffled"`, `"en-10k"`, `"hn-10k"`, or `"shuffled-10k"`.
+* `gram_size::Int`: number of grams per token.
 
 **Returns**
 

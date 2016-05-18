@@ -1,25 +1,25 @@
 
-type Clause
+type Clause{T}
     task_id::Int
     i::Int
     text::ASCIIString
-    tokens::Vector{Int}
+    tokens::T
 end
 Base.show(io::IO, s::Clause) = print(io, "[$(s.i)] $(s.text)")
 
-type Question
+type Question{T}
     task_id::Int
     i::Int
     text::ASCIIString
-    tokens::Vector{Int}
+    tokens::T
     answer::ASCIIString
     target::Int
     support::Vector{Int}
 end
 Base.show(io::IO, q::Question) = print(io, "[$(q.i)] $(q.text) => $(q.answer) $(q.support)")
 
-typealias Item Union{Clause,Question}
-
+typealias Item{T} Union{Clause{T},Question{T}}
+typealias TextItem Item{Vector{Int}}
 
 function Clause(V::Vocab, task_id::Int, i::Int, text::ASCIIString, gram_size::Int=1)
     text = filter(c -> !ispunct(c), strip(text))
@@ -55,9 +55,9 @@ function Question(V1::Vocab, V2::Vocab, task_id::Int, i::Int, text::ASCIIString,
 end
 
 function read_text(task_id::Int, V1::Vocab, V2::Vocab, fname::AbstractString, gram_size::Int=1)
-    stories = Vector{Item}[]
+    stories = Vector{TextItem}[]
     open(fname) do fp
-        story = Item[]
+        story = TextItem[]
         i = 0
         for (num, line) in enumerate(eachline(fp))
             line = lowercase(line)
@@ -92,7 +92,7 @@ function task_file_names(task_id::Int; path::AbstractString=ENV["BABI_PATH"], co
 end
 
 """
-    Babi.read_data(task_id; path=ENV["BABI_PATH"], collection="en")
+    Babi.dataset(task_id; path=ENV["BABI_PATH"], collection="en")
 
 Read bAbI task data for the task specified by `task_id`. 
 
@@ -110,11 +110,11 @@ Read bAbI task data for the task specified by `task_id`.
 * `train_docs::Vector{Vector{Babi.Item}}`: training documents.
 * `clause_vocab::IndexedArray{ASCIIString}`: testing document.
 """
-function read_data(task_ids::Vector{Int}; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en", gram_size::Int=1)
+function dataset(task_ids::Vector{Int}; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en", gram_size::Int=1)
     V1 = Vocab()
     V2 = Vocab()
-    train = Vector{Item}[]
-    test = Vector{Item}[]
+    train = Vector{TextItem}[]
+    test = Vector{TextItem}[]
     for task_id in task_ids
         ftrain, ftest = task_file_names(task_id; path=path, collection=collection)
         tr = read_text(task_id, V1, V2, ftrain, gram_size)
@@ -125,6 +125,6 @@ function read_data(task_ids::Vector{Int}; path::AbstractString=ENV["BABI_PATH"],
     return V1, V2, train, test
 end
 
-function read_data(task_id::Int; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en", gram_size::Int=1)
-    return read_data([task_id]; path=path, collection=collection, gram_size=gram_size)
+function dataset(task_id::Int; path::AbstractString=ENV["BABI_PATH"], collection::AbstractString="en", gram_size::Int=1)
+    return dataset([task_id]; path=path, collection=collection, gram_size=gram_size)
 end

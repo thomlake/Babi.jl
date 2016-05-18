@@ -15,11 +15,11 @@ The top level function for reading data is `Babi.dataset`. It takes a single pos
 
     Babi.dataset(task_ids; path=ENV["BABI_PATH"], collection="en")
 
-Read bAbI task data for the task specified by `task_id`. 
+Read bAbI task data for the task(s) specified by `task_ids`. 
 
 **Arguments**
 
-* `task_id::Union{Int,Vector{Int}}`: task number(s) from 1 to 20.
+* `task_ids::Union{Int,Vector{Int}}`: task number(s) from 1 to 20.
 * `path::AbstractString`: path to the directory containing the bAbI task data, i.e., `"/path/to/tasks_1-20_v1-2/"`.
 * `collection::AbstractString`: collection to load. Should be one of `"en"`, `"hn"`, `"shuffled"`, `"en-10k"`, `"hn-10k"`, or `"shuffled-10k"`.
 * `gram_size::Int`: number of grams per token.

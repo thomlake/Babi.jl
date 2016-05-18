@@ -94,7 +94,7 @@ end
 """
     Babi.dataset(task_id; path=ENV["BABI_PATH"], collection="en")
 
-Read bAbI task data for the task specified by `task_id`. 
+Read bAbI task data for the task(s) specified by `task_ids`. 
 
 **Arguments**
 

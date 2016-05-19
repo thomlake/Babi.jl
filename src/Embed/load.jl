@@ -17,7 +17,6 @@ function dataset(task_ids::Vector{Int}, fname)
                     item_ids = sort(map(s -> parse(Int, s), names(g_story)))
                     for j in item_ids
                         g = g_story[string(j)]
-                        println(read(attrs(g), "index"))
                         if read(attrs(g), "index") != j
                            error("Index mismtach: ", j, " != ", read(attrs(g), "index"), " while reading story ", i, " in task ", task_id) 
                         end
@@ -45,4 +44,4 @@ function dataset(task_ids::Vector{Int}, fname)
     return vocab, train, test
 end
 
-dataset(task_id::Int, fname) = load([task_id], fname)
+dataset(task_id::Int, fname) = dataset([task_id], fname)

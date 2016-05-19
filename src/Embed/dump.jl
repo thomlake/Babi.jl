@@ -1,6 +1,6 @@
 
 function Base.dump(param_fname, output_fname)
-    vocab, _, data_train, data_test = Babi.read_data(collect(1:20))
+    vocab, _, data_train, data_test = Babi.dataset(collect(1:20))
 
     params = Runtime(Flimsy.restore(param_fname))
     story_index_dict = Dict{Int,Int}()
@@ -9,7 +9,7 @@ function Base.dump(param_fname, output_fname)
     for (name, data) in (("train", data_train), ("test", data_test))
         println("Saving $name data")
         g_data = g_create(f5, name)
-        for story in data_train
+        for story in data
             task_id = first(story).task_id
             story_id = story_index_dict[task_id] = get(story_index_dict, task_id, 0) + 1
             g_task = exists(g_data, string(task_id)) ? g_data[string(task_id)] : g_create(g_data, string(task_id))

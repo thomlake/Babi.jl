@@ -20,10 +20,12 @@ function train(fname;
     noise_rate::AbstractFloat=0.01,
     max_epochs::Int=1000,
     seed::Int=123,
+    eval_freq::Int=5000,
+    eval_size::Int=1000,
     verbosity::Int=2,
     )
     srand(seed)
-    vocab, _, data_train, data_test = Babi.read_data(collect(1:20))
+    vocab, _, data_train, data_test = Babi.dataset(collect(1:20))
 
     verbosity > 1 && println("Vocab size: ", length(vocab))
     seqs_train = Vector{Int}[]
@@ -63,13 +65,13 @@ function train(fname;
             nll += cost(params, x; grad=true)
             grad_noise && noise!()
             update!(opt)
-            i > 2000 && break
+            i >= eval_freq && break
         end
         step(noise!)
         opt.learning_rate *= learning_rate_decay
         
-        train_error = compute_error(params, seqs_train[rand(1:end, 500)])
-        test_error = compute_error(params, seqs_test[rand(1:end, 500)])
+        train_error = compute_error(params, seqs_train[rand(1:end, eval_size)])
+        test_error = compute_error(params, seqs_test[rand(1:end, eval_size)])
         improved = train_error <= best_train_error && test_error <= best_test_error
         if verbosity > 0
             @printf "[%02d] nll => %7.02f, err => %0.02f | %0.02f %s\n" n_epochs nll train_error test_error (improved ? "(*)" : "")

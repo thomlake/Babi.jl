@@ -20,6 +20,33 @@ Base.show(io::IO, q::Question) = print(io, "[$(q.i)] $(q.text) => $(q.answer) $(
 
 typealias Item{T} Union{Clause{T},Question{T}}
 typealias TextItem Item{Vector{Int}}
+typealias VectorItem Item{Vector{Float64}}
+
+function tokenvector(tokens::Vector{Int}, vocab_size::Int)
+    x = zeros(vocab_size)
+    for token in tokens
+        x[token] = 1
+    end
+    return x
+end
+
+Base.convert(::Type{VectorItem}, clause::Clause{Vector{Int}}, vocab_size::Int) = Clause(
+    clause.task_id,
+    clause.i,
+    clause.text,
+    tokenvector(clause.tokens, vocab_size),
+)
+
+Base.convert(::Type{VectorItem}, question::Question{Vector{Int}}, vocab_size::Int) = Question(
+    question.task_id,
+    question.i,
+    question.text,
+    tokenvector(question.tokens, vocab_size),
+    question.answer,
+    question.target,
+    question.support,
+)
+
 
 function Clause(V::Vocab, task_id::Int, i::Int, text::ASCIIString, gram_size::Int=1)
     text = filter(c -> !ispunct(c), strip(text))
